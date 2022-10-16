@@ -1,0 +1,343 @@
+/*                if(block_realloc->prev == NULL){
+                    memory_manager.first_memory_chunk = block_realloc->next;
+                    block_realloc->next->prev = NULL;
+                    memory_manager.first_memory_chunk->sum_control = 0;
+                    memory_manager.first_memory_chunk->sum_control = fun_sum_control(memory_manager.first_memory_chunk);
+                    memory_manager.memory_size += sizeof(struct memory_chunk_t);
+                }
+                else if(block_realloc->prev && block_realloc->next) {
+                    block_realloc->prev->next = block_realloc->next;
+                    block_realloc->prev->sum_control = 0;
+                    block_realloc->prev->sum_control = fun_sum_control(block_realloc->prev);
+                    block_realloc->next->prev = block_realloc->prev;
+                    block_realloc->next->sum_control = 0;
+                    block_realloc->next->sum_control = fun_sum_control(block_realloc->next);
+                    memory_manager.memory_size += sizeof(struct memory_chunk_t);
+                }
+*/
+/*if(block_realloc->next && block_realloc->next->free == 1 && block_realloc->size + block_realloc->next->size + unused_1 >= size){ // AaaaaB.... po AaaaaaaaB.
+                memset((uint8_t*)block_realloc + sizeof(struct memory_chunk_t) + FENCE + block_realloc->size,'r', FENCE);
+                size_2 = size - block_realloc->size;
+                block_realloc->size = size;
+                block_realloc->free = 0;
+
+                struct memory_chunk_t *new_next = (struct memory_chunk_t*)((uint8_t*)block_realloc->next + size_2); // przesunięcie bloku
+                memcpy(new_next, block_realloc->next, sizeof(struct memory_chunk_t));
+                // new_next = block_realloc->next;
+                new_next->next = block_realloc->next->next;
+                block_realloc->next->next->prev = new_next;
+                block_realloc->next = new_next;
+                new_next->prev = block_realloc;
+
+                new_next->size += -size_2;
+
+                //memset((uint8_t*)block_realloc + sizeof(struct memory_chunk_t),'#',FENCE);
+                memset((uint8_t*)block_realloc + sizeof(struct memory_chunk_t) + size + FENCE,'#',FENCE);
+
+                block_realloc->sum_control = 0;
+                block_realloc->sum_control = fun_sum_control(block_realloc);
+                new_next->sum_control = 0;
+                new_next->sum_control = fun_sum_control(new_next);
+                new_next->next->sum_control = 0;
+                new_next->next->sum_control = fun_sum_control(new_next->next);
+
+                memory_manager.memory_size += -size_2;
+
+                typ_pointer = get_pointer_type(memblock);
+                if(typ_pointer == pointer_valid)
+                    return (uint8_t*)memblock;
+            }*/
+
+              /*  if(block_realloc->prev == NULL){
+                                        memory_manager.first_memory_chunk = block_realloc->next;
+                                        block_realloc->next->prev = NULL;
+                                        memory_manager.first_memory_chunk->sum_control = 0;
+                                        memory_manager.first_memory_chunk->sum_control = fun_sum_control(memory_manager.first_memory_chunk);
+                                        memory_manager.memory_size += sizeof(struct memory_chunk_t);
+                                    }
+                                    else if(block_realloc->prev && block_realloc->next) {
+                                        block_realloc->prev->next = block_realloc->next;
+                                        block_realloc->prev->sum_control = 0;
+                                        block_realloc->prev->sum_control = fun_sum_control(block_realloc->prev);
+                                        block_realloc->next->prev = block_realloc->prev;
+                                        block_realloc->next->sum_control = 0;
+                                        block_realloc->next->sum_control = fun_sum_control(block_realloc->next);
+                                        memory_manager.memory_size += sizeof(struct memory_chunk_t);
+                                    }
+            */
+
+
+ if(number <= 0 || size_of <= 0) return NULL;
+    size_t size = number * size_of;
+
+
+ if(block->prev && block->prev->free == 1){
+                        block->prev->size += size_L + sizeof(struct memory_chunk_t);
+                         block_aligned->next = block->next;
+                         block->next->prev = block_aligned;
+
+                         block->prev->next = block_aligned;
+                         block_aligned->prev = block->prev;
+
+                         block->prev->sum_control = 0;
+                         block->prev->sum_control = fun_sum_control(block->prev);
+                         block_aligned->next->sum_control = 0;
+                         block_aligned->next->sum_control = fun_sum_control(block_aligned->next);
+
+                         memory_manager.memory_size += size_L + sizeof(struct memory_chunk_t);
+                      //   who_you_are = 1;
+                     }
+
+
+
+  if (block_aligned->next && block_aligned->next->free == 1) {
+                             block_aligned->next->size += free_R + sizeof(struct memory_chunk_t);
+                             memory_manager.memory_size += free_R + sizeof(struct memory_chunk_t);
+                      //   }
+
+
+ heap_validate();
+   /* int heap_size = 0;
+    struct memory_chunk_t *block_control = memory_manager.first_memory_chunk;
+       while (block_control){
+        heap_size += sizeof(struct memory_chunk_t);
+        if(block_control->free == 0)
+            heap_size += (int)block_control->size + 2*FENCE;
+        if(block_control->next)
+            block_control = block_control->next;
+        else break;
+    }
+    heap_size += memory_manager.memory_size;
+    custom_sbrk(-heap_size);
+    */
+    size_t heap_size = 0;
+    void *ptr_sbrk = custom_sbrk(0);
+    heap_size = (uint8_t*)ptr_sbrk - (uint8_t*)memory_manager.memory_start;
+    custom_sbrk(-heap_size);
+    memset(&memory_manager,0,sizeof(struct memory_manager_t));
+}
+
+void* heap_malloc_aligned(size_t count)
+{
+    size_t size = count;
+    if(size <= 0 ) return NULL;
+    heap_validate();
+
+    size_t size_free_L = 0;
+    size_t size_free_R = 0;
+    size_t free_R = 0;
+
+    struct memory_chunk_t *block = memory_manager.first_memory_chunk;
+    uint8_t *ptr = NULL;
+    short flag = 0;
+
+    while (block) {
+        flag = 0;
+        size_free_L = 0;
+        size_free_R = 0;
+        free_R = 0;
+        if (block->free == 1) {
+            if (size + 2*FENCE <= block->size)
+            {
+                ptr = (uint8_t *)block + sizeof(struct memory_chunk_t) + FENCE; //xl +FENCE
+                while (ptr < (uint8_t*)block + sizeof(struct memory_chunk_t) + block->size - FENCE){// - FENCE){ //xl -FENCE
+                    if (((intptr_t)ptr & (intptr_t)(PAGE - 1)) == 0) {
+                        flag = 1;
+                        break;
+                    }
+                    ptr++;
+                }
+                if(flag == 1){
+                    size_free_L = (uint8_t *)ptr - (uint8_t *)block;
+                    size_free_R = block->size - size_free_L;
+                    free_R = 0;
+                    if (block->size >= (size_free_L + size + 2* FENCE + sizeof(struct memory_chunk_t)))
+                        free_R = block->size - (size_free_L + size);
+                    else
+                        flag = 2;
+                    if (flag == 1)
+                        break;
+                }
+            }
+        }
+        block = block->next;
+    }
+
+    struct memory_chunk_t *first_block = memory_manager.first_memory_chunk;
+
+    if(first_block == NULL){
+        first_block = (struct memory_chunk_t*)memory_manager.memory_start;
+        first_block->free = 1;
+        first_block->size = PAGE - sizeof(struct memory_chunk_t) - FENCE;
+        first_block->prev = NULL;
+        first_block->next = NULL;
+        first_block->sum_control = 0;
+        first_block->sum_control = fun_sum_control(first_block);
+
+        memory_manager.memory_size -= sizeof(struct memory_chunk_t);
+        memory_manager.first_memory_chunk = first_block;
+    }
+
+    if (flag == 0 || memory_manager.first_memory_chunk == NULL)
+    {
+        size_t siz_need = size + sizeof(struct memory_chunk_t) + 2*FENCE;
+        siz_need = align_size(siz_need);
+
+        void *ptr_sbrk = custom_sbrk(siz_need);
+        if(ptr_sbrk == (void*)-1)
+            return NULL;
+        memory_manager.memory_size += siz_need;
+    }
+
+
+  /*  if(flag == 1 && size_free_R < size + FENCE){
+        flag = 0;
+        size_t siz_need = size + sizeof(struct memory_chunk_t) + 2*FENCE;
+        siz_need = align_size(siz_need);
+        void *ptr_sbrk = custom_sbrk(siz_need);
+        if(ptr_sbrk == (void*)-1)
+            return NULL;
+        memory_manager.memory_size += siz_need;
+    }
+*/
+    if(flag == 1 && size_free_R >= size + FENCE && size_free_L >= sizeof(struct memory_chunk_t) + FENCE){//free_R > 0)
+        void* ptr_sbrk_last = custom_sbrk(0);
+        if((uint8_t*)ptr + size + FENCE + free_R + sizeof(struct memory_chunk_t) >= (uint8_t*)ptr_sbrk_last)
+            return NULL;
+
+        if(size_free_L == sizeof(struct memory_chunk_t) + FENCE && size_free_R == size + FENCE){
+            block->size = size;
+            block->free = 0;
+            memset((uint8_t*)block+ sizeof(struct memory_chunk_t),'#', FENCE);
+            memset((uint8_t*)block + sizeof(struct memory_chunk_t) + size + FENCE,'#', FENCE);
+
+            block->sum_control = 0;
+            block->sum_control = fun_sum_control(block);
+
+            memory_manager.memory_size += -size - 2*FENCE;
+            typ_pointer = get_pointer_type((uint8_t*)block + sizeof(struct memory_chunk_t) + FENCE);
+            if(typ_pointer == pointer_valid)
+                return (uint8_t*)block + sizeof(struct memory_chunk_t) + FENCE;
+
+            return NULL;
+        }
+        else {
+            struct memory_chunk_t *block_aligned = (struct memory_chunk_t*)((uint8_t*)ptr - sizeof(struct memory_chunk_t) - FENCE);
+
+            block_aligned->size = size;
+            block_aligned->free = 0;
+            memset((uint8_t*)block_aligned+ sizeof(struct memory_chunk_t),'#', FENCE);
+            memset((uint8_t*)block_aligned + sizeof(struct memory_chunk_t) + size + FENCE,'#', FENCE);
+
+            size_t size_L = size_free_L - sizeof(struct memory_chunk_t) - FENCE;
+
+             if (size_L > 0) {
+                block->size = size_L;
+                block->free = 1;
+                block_aligned->next = block->next;
+                block->next->prev = block_aligned;
+                block_aligned->prev = block;
+                block->next = block_aligned;
+
+                block->sum_control = 0;
+                block->sum_control = fun_sum_control(block);
+                block_aligned->next->sum_control = 0;
+                block_aligned->next->sum_control = fun_sum_control(block_aligned->next);
+            }
+
+            if (free_R > 0) {
+                struct memory_chunk_t *block_free_R = (struct memory_chunk_t *) ((uint8_t *) ptr + size + FENCE);
+                block_free_R->size = free_R;
+                block_free_R->free = 1;
+
+                if(size_free_L == sizeof(struct memory_chunk_t) + FENCE) {
+                    block_free_R->next = block->next;
+                    block->next->prev = block_free_R;
+                    block_free_R->prev = block_aligned;
+                    block_aligned->next = block_free_R;
+
+                    block_free_R->sum_control = 0;
+                    block_free_R->sum_control = fun_sum_control(block_free_R);
+                    block_free_R->next->sum_control = 0;
+                    block_free_R->next->sum_control = fun_sum_control(block_free_R->next);
+                }
+                if(size_L > 0){
+                    block_free_R->next = block_aligned->next;
+                    block_aligned->next->prev = block_free_R; //??
+                    block_free_R->prev = block_aligned;
+                    block_aligned->next = block_free_R;
+
+                    block_free_R->sum_control = 0;
+                    block_free_R->sum_control = fun_sum_control(block_free_R);
+                    block_free_R->next->sum_control = 0;
+                    block_free_R->next->sum_control = fun_sum_control(block_free_R->next);
+                }
+                memory_manager.memory_size += -sizeof(struct memory_chunk_t);
+            }
+
+            block_aligned->sum_control = 0;
+            block_aligned->sum_control = fun_sum_control(block_aligned);
+
+            if(block_aligned != block)
+                memory_manager.memory_size += -sizeof(struct memory_chunk_t);
+            memory_manager.memory_size += - size - 2*FENCE;
+
+            typ_pointer = get_pointer_type((uint8_t*)block_aligned + sizeof(struct memory_chunk_t) + FENCE);
+            if(typ_pointer == pointer_valid)
+                return (uint8_t*)block_aligned + sizeof(struct memory_chunk_t) + FENCE;
+
+            return NULL;
+        }
+    }
+    else{
+        struct memory_chunk_t *the_last_block = memory_manager.first_memory_chunk;
+        while (the_last_block->next) {
+            the_last_block = the_last_block->next;
+        }
+
+        size_t offset = (uint8_t *)the_last_block - (uint8_t *)memory_manager.memory_start;
+        offset = offset + the_last_block->size + sizeof(struct memory_chunk_t);
+        if (the_last_block->free == 0)
+            offset = offset + 2*FENCE;
+
+        if ((align_size(offset) - offset < sizeof(struct memory_chunk_t) + FENCE) && ((uint8_t*)the_last_block != (uint8_t*)memory_manager.memory_start))
+        {
+            void* ptr_sbrk = custom_sbrk(PAGE);
+            if(ptr_sbrk == (void*)-1)
+                return NULL;
+            memory_manager.memory_size += PAGE;
+            offset =  offset + PAGE;
+        }
+
+        offset = align_size(offset);
+        offset += -sizeof(struct memory_chunk_t) - FENCE;
+
+        void* ptr_sbrk_last = custom_sbrk(0);
+        if((uint8_t*)memory_manager.memory_start + offset + sizeof(struct memory_chunk_t) + 2*FENCE + size >= (uint8_t*)ptr_sbrk_last)
+            return NULL;
+
+        struct memory_chunk_t* next_block = (struct memory_chunk_t*) ((uint8_t*)memory_manager.memory_start + offset);
+        memset((uint8_t*)next_block + sizeof(struct memory_chunk_t),'#', FENCE);
+        memset((uint8_t*)next_block + sizeof(struct memory_chunk_t) + size + FENCE,'#', FENCE);
+        next_block->size = size;
+        next_block->free = 0;
+        next_block->next = NULL;
+        next_block->prev = the_last_block;
+        the_last_block->next = next_block;
+
+        next_block->sum_control = 0;
+        next_block->sum_control = fun_sum_control(next_block);
+        the_last_block->sum_control = 0;
+        the_last_block->sum_control = fun_sum_control(the_last_block);
+
+        memory_manager.memory_size += -size - sizeof(struct memory_chunk_t) - 2*FENCE;
+
+        typ_pointer = get_pointer_type((uint8_t*)next_block + sizeof(struct memory_chunk_t) + FENCE);
+        if(typ_pointer == pointer_valid)
+           return (uint8_t*)next_block + sizeof(struct memory_chunk_t) + FENCE;
+
+        return NULL;
+    }
+    return NULL;
+
+}

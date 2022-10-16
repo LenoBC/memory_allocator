@@ -1,0 +1,1 @@
+/usr/bin/cc -g  -ggdb3 -fuse-ld=gold -Wl,-Map=main.map -Wl,-cref -Wl,-wrap,main CMakeFiles/projekt_1.dir/main.c.o CMakeFiles/projekt_1.dir/heap.c.o CMakeFiles/projekt_1.dir/memmanager.c.o CMakeFiles/projekt_1.dir/unit_test_v2.c.o CMakeFiles/projekt_1.dir/unit_helper_v2.c.o CMakeFiles/projekt_1.dir/rdebug.c.o  -o projekt_1  -lm -lpthread 
